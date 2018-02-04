@@ -1,9 +1,9 @@
 pragma solidity ^0.4.18;
 
-import "./UserRegistryInterface.sol";
+import "./UserRegistry.sol";
 import "./Invitation.sol";
 
-contract User is UserInterface {
+contract User {
   struct Profile {
     string name;
     string avatar;
@@ -11,11 +11,11 @@ contract User is UserInterface {
 
   Profile private _profile;
   address private _owner;
-  UserRegistryInterface private _registry;
+  UserRegistry private _registry;
 
   Invitation[] private _sent;
   Invitation[] private _inbox;
-  UserInterface[] private _contacts;
+  User[] private _contacts;
 
   modifier onlyowner() {
     require(msg.sender == _owner);
@@ -27,7 +27,7 @@ contract User is UserInterface {
     _ ;
   }
 
-  function User(UserRegistryInterface registry) public {
+  function User(UserRegistry registry) public {
     require(address(registry) != 0x0 && msg.sender != 0x0);
     _owner = msg.sender;
     _registry = registry;
@@ -51,7 +51,7 @@ contract User is UserInterface {
     _owner = newOwner;
   }
 
-  function addContact(UserInterface contact) internal {
+  function addContact(User contact) internal {
     require(address(contact) != 0x0);
 
     for (uint i = 0; i < _contacts.length; i++) {
@@ -61,7 +61,7 @@ contract User is UserInterface {
     _contacts.push(contact);
   }
 
-  function sendInvitation(UserInterface invitee) external onlyowner returns(Invitation) {
+  function sendInvitation(User invitee) external onlyowner returns(Invitation) {
     require(address(invitee) != 0x0);
     require(this != invitee);
 
