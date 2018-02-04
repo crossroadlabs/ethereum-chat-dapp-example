@@ -111,14 +111,14 @@ contract User is UserInterface {
     require(deleted);
   }
 
-  function acceptInvitation(Invitation invitation) external {
+  function acceptInvitation(Invitation invitation) external onlyowner {
     deleteFromInbox(invitation);
 
     addContact(invitation.inviter());
     invitation.accept();
   }
 
-  function rejectInvitation(Invitation invitation) external {
+  function rejectInvitation(Invitation invitation) external onlyowner {
     deleteFromInbox(invitation);
 
     invitation.reject();

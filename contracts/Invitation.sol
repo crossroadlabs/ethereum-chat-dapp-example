@@ -17,8 +17,10 @@ contract Invitation {
     }
 
     function accept() public inviteeOnly {
+        inviter.invitationAccepted();
     }
 
     function reject() public inviteeOnly {
+        inviter.invitationRejected();
     }
 }

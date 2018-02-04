@@ -6,7 +6,7 @@ import "./User.sol";
 contract UserRegistry is UserRegistryInterface {
   mapping(address => UserInterface) private users;
 
-  function register() external returns (User) {
+  function register() external returns (UserInterface) {
     require(address(users[msg.sender]) == 0x0);
     var user = new User(this);
     users[msg.sender] = user;
