@@ -1,6 +1,8 @@
 pragma solidity ^0.4.18;
 
-contract User {
+import "./UserRegistryInterface.sol";
+
+contract User is UserInterface {
   struct Profile {
     string name;
     string avatar;
@@ -8,7 +10,9 @@ contract User {
 
   Profile private _profile;
   address private _owner;
-  address private _registry;
+  UserRegistryInterface private _registry;
+
+  User[] private _pending;
 
   modifier onlyowner() {
     require(msg.sender == _owner);
@@ -16,12 +20,12 @@ contract User {
   }
 
   modifier registrycall() {
-    require(msg.sender == _registry);
+    require(msg.sender == address(_registry));
     _ ;
   }
 
-  function User(address registry) {
-    require(registry != 0x0 && msg.sender != 0x0);
+  function User(UserRegistryInterface registry) {
+    require(address(registry) != 0x0 && msg.sender != 0x0);
     _owner = msg.sender;
     _registry = registry;
   }
@@ -42,4 +46,10 @@ contract User {
     require(newOwner != 0x0);
     _owner = newOwner;
   }
+
+  /*function invite() public {
+    for (uint i = 0; i < _pending.length; i++) {
+      if(_pending[i] == msg.sender)
+    }
+  }*/
 }
