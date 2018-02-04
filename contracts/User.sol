@@ -12,10 +12,15 @@ contract User is UserInterface {
   address private _owner;
   UserRegistryInterface private _registry;
 
-  User[] private _pending;
+  UserInterface[] private _pending;
 
   modifier onlyowner() {
     require(msg.sender == _owner);
+    _ ;
+  }
+
+  modifier notowner() {
+    require(msg.sender != _owner);
     _ ;
   }
 
@@ -48,9 +53,15 @@ contract User is UserInterface {
     _owner = newOwner;
   }
 
-  /*function invite() public {
+  function invite() public {
+    UserInterface user = _registry.getUser(msg.sender);
+
+    require(address(user) != 0x0);
+
     for (uint i = 0; i < _pending.length; i++) {
-      if(_pending[i] == msg.sender)
+      require(_pending[i] != user);
     }
-  }*/
+
+    _pending.push(user);
+  }
 }
