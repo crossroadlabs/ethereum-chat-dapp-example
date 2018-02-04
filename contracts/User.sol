@@ -53,7 +53,7 @@ contract User is UserInterface {
     _owner = newOwner;
   }
 
-  function invite() public {
+  function invite() public notowner {
     UserInterface user = _registry.getUser(msg.sender);
 
     require(address(user) != 0x0);
@@ -64,4 +64,6 @@ contract User is UserInterface {
 
     _pending.push(user);
   }
+
+
 }
