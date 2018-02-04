@@ -11,7 +11,7 @@ contract User {
 
   Profile private _profile;
   address private _owner;
-  UserRegistry private _registry;
+  UserRegistry public registry;
 
   Invitation[] private _sent;
   Invitation[] private _inbox;
@@ -22,15 +22,10 @@ contract User {
     _ ;
   }
 
-  modifier registrycall() {
-    require(msg.sender == address(_registry));
-    _ ;
-  }
-
-  function User(UserRegistry registry) public {
-    require(address(registry) != 0x0 && msg.sender != 0x0);
-    _owner = msg.sender;
-    _registry = registry;
+  function User(address owner) public {
+    require(address(owner) != 0x0 && msg.sender != 0x0);
+    _owner = owner;
+    registry = UserRegistry(msg.sender);
   }
 
   function getProfileInfo() public view returns (string name, string avatar) {
@@ -46,9 +41,11 @@ contract User {
     return _owner;
   }
 
-  function updateOwner(address newOwner) public registrycall {
+  function changeOwner(address newOwner) public onlyowner {
     require(newOwner != 0x0);
+    var oldOwner = _owner;
     _owner = newOwner;
+    registry.ownerUpdated(oldOwner, newOwner);
   }
 
   function addContact(User contact) internal {
@@ -109,6 +106,7 @@ contract User {
     require(address(invitation) != 0x0);
     require(this != invitation.inviter());
     require(this == invitation.invitee());
+    require(invitation.inviter().registry() == registry);
 
     for (uint i = 0; i < _inbox.length; i++) {
       require(_inbox[i].inviter() != invitation.inviter());

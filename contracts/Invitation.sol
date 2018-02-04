@@ -12,6 +12,7 @@ contract Invitation {
     }
 
     function Invitation(User invtr, User invte) public {
+        require(invtr.registry() == invte.registry());
         inviter = invtr;
         invitee = invte;
     }
