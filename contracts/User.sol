@@ -2,9 +2,8 @@ pragma solidity ^0.4.18;
 
 contract User {
   struct Profile {
-    string nickName;
-    string fullName;
-    string birthDate;
+    string name;
+    string avatar;
   }
 
   Profile private _profile;
