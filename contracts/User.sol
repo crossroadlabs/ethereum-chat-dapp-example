@@ -1,6 +1,7 @@
 pragma solidity ^0.4.18;
 
 import "./UserRegistryInterface.sol";
+import "./Invitation.sol";
 
 contract User is UserInterface {
   struct Profile {
@@ -12,15 +13,12 @@ contract User is UserInterface {
   address private _owner;
   UserRegistryInterface private _registry;
 
-  UserInterface[] private _pending;
+  Invitation[] private _sent;
+  Invitation[] private _inbox;
+  UserInterface[] private _contacts;
 
   modifier onlyowner() {
     require(msg.sender == _owner);
-    _ ;
-  }
-
-  modifier notowner() {
-    require(msg.sender != _owner);
     _ ;
   }
 
@@ -53,17 +51,104 @@ contract User is UserInterface {
     _owner = newOwner;
   }
 
-  function invite() public notowner {
-    UserInterface user = _registry.getUser(msg.sender);
+  function addContact(UserInterface contact) internal {
+    require(address(contact) != 0x0);
 
-    require(address(user) != 0x0);
-
-    for (uint i = 0; i < _pending.length; i++) {
-      require(_pending[i] != user);
+    for (uint i = 0; i < _contacts.length; i++) {
+      require(_contacts[i] != contact);
     }
 
-    _pending.push(user);
+    _contacts.push(contact);
   }
 
+  function sendInvitation(UserInterface invitee) external onlyowner returns(Invitation) {
+    require(address(invitee) != 0x0);
+    require(this != invitee);
 
+    for (uint i = 0; i < _sent.length; i++) {
+      require(_sent[i].invitee() != invitee);
+    }
+
+    Invitation invitation = new Invitation(this, invitee);
+
+    _sent.push(invitation);
+
+    invitee.receiveInvitation(invitation);
+
+    return invitation;
+  }
+
+  function receiveInvitation(Invitation invitation) public {
+    require(address(invitation) != 0x0);
+    require(this != invitation.inviter());
+    require(this == invitation.invitee());
+
+    for (uint i = 0; i < _inbox.length; i++) {
+      require(_inbox[i].inviter() != invitation.inviter());
+    }
+
+    _inbox.push(invitation);
+  }
+
+  //TODO: withdrawInvitation
+
+  function deleteFromInbox(Invitation invitation) private {
+    require(address(invitation) != 0x0);
+    require(this != invitation.inviter());
+    require(this == invitation.invitee());
+
+    bool deleted = false;
+
+    for (uint i = 0; i < _inbox.length; i++) {
+      if (_inbox[i] == invitation) {
+        _inbox[i] = _inbox[_inbox.length-1];
+        _inbox.length--;
+        deleted = true;
+        break;
+      }
+    }
+
+    require(deleted);
+  }
+
+  function acceptInvitation(Invitation invitation) external {
+    deleteFromInbox(invitation);
+
+    addContact(invitation.inviter());
+    invitation.accept();
+  }
+
+  function rejectInvitation(Invitation invitation) external {
+    deleteFromInbox(invitation);
+
+    invitation.reject();
+  }
+
+  function deleteFromSent(Invitation invitation) private {
+    require(this == invitation.inviter());
+    require(this != invitation.invitee());
+
+    bool deleted = false;
+
+    for (uint i = 0; i < _sent.length; i++) {
+      if (_sent[i] == invitation) {
+        _sent[i] = _sent[_sent.length-1];
+        _sent.length--;
+        deleted = true;
+        break;
+      }
+    }
+
+    require(deleted);
+  }
+
+  function invitationAccepted() public {
+    Invitation invitation = Invitation(msg.sender);
+    deleteFromSent(invitation);
+    addContact(invitation.invitee());
+  }
+
+  function invitationRejected() public {
+    deleteFromSent(Invitation(msg.sender));
+  }
 }
