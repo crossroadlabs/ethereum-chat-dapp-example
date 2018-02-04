@@ -61,6 +61,33 @@ contract User {
     _contacts.push(contact);
   }
 
+  function removeContactPrivate(User contact) private {
+    bool deleted = false;
+
+    for (uint i = 0; i < _contacts.length; i++) {
+      if (_contacts[i] == contact) {
+        _contacts[i] = _contacts[_inbox.length-1];
+        _contacts.length--;
+        deleted = true;
+        break;
+      }
+    }
+
+    require(deleted);
+  }
+
+  function removeContact(User contact) external onlyowner {
+    removeContactPrivate(contact);
+    contact.removeMe();
+  }
+
+  function removeMe() public {
+    require(msg.sender != 0x0);
+    User contact = User(msg.sender);
+
+    removeContactPrivate(contact);
+  }
+
   function sendInvitation(User invitee) external onlyowner returns(Invitation) {
     require(address(invitee) != 0x0);
     require(this != invitee);
