@@ -5,6 +5,10 @@ import "./User.sol";
 contract UserRegistry {
   mapping(address => User) private users;
 
+  function me() view returns (User) {
+    return users[msg.sender];
+  }
+
   function register() external returns (User) {
     require(address(users[msg.sender]) == 0x0);
     var user = new User(this);
@@ -24,6 +28,8 @@ contract UserRegistry {
     require(address(user) != 0x0);
     user.updateOwner(newOwner);
     users[msg.sender] = User(0x0);
-    users[newOwner] = user;
+    users[newOwner] = user;//UserRegistry.deployed().then(function(instance){return instance.register();}).then(function(value){return value.toString()});
+    //UserRegistry.deployed().then(function(instance){return instance.register();}).then(function(value){return value.toString()});
+    //UserRegistry.deployed().then(function(instance){return instance.me();}).then(function(value) {return value})
   }
 }
