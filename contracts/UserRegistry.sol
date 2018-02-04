@@ -4,7 +4,7 @@ import "./UserRegistryInterface.sol";
 import "./User.sol";
 
 contract UserRegistry is UserRegistryInterface {
-  mapping(address => User) private users;
+  mapping(address => UserInterface) private users;
 
   function register() external returns (User) {
     require(address(users[msg.sender]) == 0x0);
@@ -24,7 +24,7 @@ contract UserRegistry is UserRegistryInterface {
     var user = users[msg.sender];
     require(address(user) != 0x0);
     user.updateOwner(newOwner);
-    users[msg.sender] = User(0x0);
+    users[msg.sender] = UserInterface(0x0);
     users[newOwner] = user;
   }
 }

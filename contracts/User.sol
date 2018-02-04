@@ -24,18 +24,19 @@ contract User is UserInterface {
     _ ;
   }
 
-  function User(UserRegistryInterface registry) {
+  function User(UserRegistryInterface registry) public {
     require(address(registry) != 0x0 && msg.sender != 0x0);
     _owner = msg.sender;
     _registry = registry;
   }
 
-  function getProfile() public view returns (Profile) {
-    return _profile;
+  function getProfileInfo() public view returns (string name, string avatar) {
+    return (_profile.name, _profile.avatar);
   }
 
-  function setProfile(Profile profile) public onlyowner {
-    _profile = profile;
+  function setProfileInfo(string name, string avatar) public onlyowner {
+    _profile.name = name;
+    _profile.avatar = avatar;
   }
 
   function getOwner() public view returns (address) {
