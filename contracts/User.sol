@@ -9,9 +9,19 @@ contract User {
     string avatar;
   }
 
+  struct WhisperInfo {
+    string identity;
+    string pubKey;
+  }
+
+  event UserProfileUpdated();
+  event WhisperInfoUpdated();
+
   Profile private _profile;
   address private _owner;
   UserRegistry public registry;
+
+  WhisperInfo private _whisperInfo;
 
   Invitation[] private _sent;
   Invitation[] private _inbox;
@@ -19,6 +29,15 @@ contract User {
 
   modifier onlyowner() {
     require(msg.sender == _owner);
+    _ ;
+  }
+
+  modifier iscontact() {
+    var found = false;
+    for (uint i = 0; i < _contacts.length && !found; i++) {
+      found = _contacts[i] == msg.sender;
+    }
+    require(found);
     _ ;
   }
 
@@ -35,6 +54,7 @@ contract User {
   function setProfileInfo(string name, string avatar) public onlyowner {
     _profile.name = name;
     _profile.avatar = avatar;
+    UserProfileUpdated();
   }
 
   function getOwner() public view returns (address) {
@@ -46,6 +66,32 @@ contract User {
     var oldOwner = _owner;
     _owner = newOwner;
     registry.ownerUpdated(oldOwner, newOwner);
+  }
+
+  function getWhisperPubKey() public view iscontact returns (string) {
+    return _whisperInfo.pubKey;
+  }
+
+  function getWhisperInfo() public view onlyowner returns (string identity, string pubKey) {
+    return (_whisperInfo.identity, _whisperInfo.pubKey);
+  }
+
+  function setWhisperInfo(string identity, string pubKey) public onlyowner {
+    _whisperInfo.identity = identity;
+    _whisperInfo.pubKey = pubKey;
+    WhisperInfoUpdated();
+  }
+
+  function getSentInvitations() external view onlyowner returns (Invitation[]) {
+    return _sent;
+  }
+
+  function getInboxInvitations() external view onlyowner returns (Invitation[]) {
+    return _inbox;
+  } 
+
+  function getContacts() external view onlyowner returns (User[]) {
+    return _contacts;
   }
 
   function addContact(User contact) internal {
