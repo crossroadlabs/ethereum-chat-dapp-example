@@ -36,8 +36,9 @@ class WhisperSocket {
           console.debug('Message arrived', message)
           if (this.onmessage) {
             this.onmessage({
-              from: message.sig,
-              message: message.payload
+              from: message.from,
+              message: message.payload,
+              sent: message.sent
             })
           }
         }
