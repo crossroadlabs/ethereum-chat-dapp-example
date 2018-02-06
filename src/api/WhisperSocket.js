@@ -1,6 +1,6 @@
 
-import getWeb3 from './getWeb3'
-import promisify from './promisify'
+import getWeb3 from '../utils/getWeb3'
+import promisify from '../utils/promisify'
 
 class WhisperSocket {
   constructor(user) {

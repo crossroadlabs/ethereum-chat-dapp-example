@@ -1,6 +1,6 @@
 import contract from 'truffle-contract'
 import InvitationContract from '../../build/contracts/Invitation.json'
-import getWeb3 from './getWeb3'
+import getWeb3 from '../utils/getWeb3'
 
 const invitationContract = contract(InvitationContract)
 
