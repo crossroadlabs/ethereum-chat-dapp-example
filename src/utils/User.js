@@ -33,8 +33,8 @@ class User {
     return this._whisperInfo = this._userContract.then((user) => user.getWhisperInfo())
   }
 
-  setWhisperInfo(id, pubKey) {
-    return this._userContract.then((user) => user.setWhisperInfo(id, pubKey))
+  setWhisperInfo(pubKey, key) {
+    return this._userContract.then((user) => user.setWhisperInfo(pubKey, key))
   }
 
   getPubKey() {

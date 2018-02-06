@@ -1,11 +1,13 @@
 
 import getWeb3 from './getWeb3'
+import promisify from './promisify'
 
 class WhisperSocket {
   constructor(user) {
     this.user = user;
     this.onmessage = null;
     this.onerror = null;
+    this._listening = null;
 
     this.user.whisperInfoUpdated = () => {
       this.initialize().catch((err) => {
@@ -17,30 +19,28 @@ class WhisperSocket {
 
   initialize() {
     return this._updateIdentity()
-    .then(([id, pubKey]) => {
-      return this._listen(id, pubKey).then(() => this)
+    .then(([pubKey, key]) => {
+      return this._listen(pubKey, key).then(() => this)
     })
   }
 
-  _listen(pkId, pubKey) {
+  _listen(pubKey, key) {
     return this._getShh().then((shh) => {
-      shh.clearSubscriptions();
-      shh.subscribe('mesages', {
-        privateKeyID: pkId,
-        pubKey: pubKey
-      })
-      .on('data', (message) => {
-        console.debug('Message arrived', message)
-        if (this.onmessage) {
-          this.onmessage({
-            from: message.sig,
-            message: message.payload
-          })
+      if (this._listening) this._listening.stopWatching()
+      this._listening = shh.filter({ to: key })
+      this._listening.watch((err, message) => {
+        if (err) {
+          console.error(err)
+          if (this.onerror) this.onerror(err)
+        } else {
+          console.debug('Message arrived', message)
+          if (this.onmessage) {
+            this.onmessage({
+              from: message.sig,
+              message: message.payload
+            })
+          }
         }
-      })
-      .on('error', (err) => {
-        console.error(err)
-        if (this.onerror) this.onerror(err)
       })
     })
   }
@@ -49,18 +49,23 @@ class WhisperSocket {
     this.user.getWhisperInfo()
     .then((info) => this._getShh().then((shh) => [info, shh]))
     .then(([info, shh]) => {
-      return info.identity ? shh.hasKeyPair(info.identity).then((has) => [info.identity, has, shh]) : [info.identity, false, shh]
+      return info.key ? promisify(shh.hasIdentity)(info.key).then((has) => [info.key, has, shh]) : [info.key, false, shh]
     })
-    .then(([identity, has, shh]) => {
-      return has ? [identity, false, shh] : shh.newKeyPair().then((id) => [id, true, shh])
+    .then(([key, has, shh]) => {
+      return has ? [key, false, shh] : promisify(shh.newIdentity)().then((id) => [id, true, shh])
     })
     .then(([id, created, shh]) => {
-      shh.getPublicKey(id).then((key) => {
-        if (created) {
-          return this.user.setWhisperInfo(id, key).then(() => [id, key])
-        }
-        return [id, key]
-      })
+      // This part for new web3 1.0 API
+      // shh.getPublicKey(id).then((pubKey) => {
+      //   if (created) {
+      //     return this.user.setWhisperInfo(pubKey, id).then(() => [pubKey, id])
+      //   }
+      //   return [pubKey, id]
+      // })
+      if (created) {
+        return this.user.setWhisperInfo(id, id).then(() => [id, id])
+      }
+      return [id, id]
     })
   }
 
@@ -70,18 +75,14 @@ class WhisperSocket {
 
   sendMessage(to, message) {
     return to.getPubKey().then((pubKey) => {
-      return this.user.getWhisperInfo().then((info) => [info.identity, pubKey])
-    }).then(([keyId, pubKey]) => {
+      return this.user.getWhisperInfo().then((info) => [info.key, pubKey])
+    }).then(([key, pubKey]) => {
       return this._getShh().then((shh) => {
-        shh.post({
-          sig: keyId,
-          pubKey: pubKey,
+        return promisify(shh.post)({
+          from: key,
           payload: message,
-          ttl: 10,
-          powTime: 3,
-          powTarget: 0.5
-        }).then((sent) => {
-          if (!sent) throw new Error("Error while sending message")
+          ttl: 100,
+          workToProve: 10
         })
       })
     })

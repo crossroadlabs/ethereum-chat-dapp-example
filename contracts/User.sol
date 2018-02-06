@@ -10,8 +10,8 @@ contract User {
   }
 
   struct WhisperInfo {
-    string identity;
     string pubKey;
+    string key;
   }
 
   event UserProfileUpdated();
@@ -72,12 +72,12 @@ contract User {
     return _whisperInfo.pubKey;
   }
 
-  function getWhisperInfo() public view onlyowner returns (string identity, string pubKey) {
-    return (_whisperInfo.identity, _whisperInfo.pubKey);
+  function getWhisperInfo() public view onlyowner returns (string pubKey, string key) {
+    return (_whisperInfo.pubKey, _whisperInfo.key);
   }
 
-  function setWhisperInfo(string identity, string pubKey) public onlyowner {
-    _whisperInfo.identity = identity;
+  function setWhisperInfo(string pubKey, string key) public onlyowner {
+    _whisperInfo.key = key;
     _whisperInfo.pubKey = pubKey;
     WhisperInfoUpdated();
   }
