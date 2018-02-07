@@ -40,8 +40,7 @@ class App extends Component {
             api.Accounts.instance().currentAccount = found.id
             return found
           } else {
-            let account = accounts[0].id
-            api.Accounts.instance().currentAccount = account.id
+            let account = accounts[0]
             return api.Registry.instance().register().then((user) => {
               account.user = user
               return account

@@ -67,7 +67,7 @@ class WhisperSocket extends EventEmitter {
         this.emit("message", {
           from: message.sig,
           message: this._web3.toUtf8(message.payload),
-          sent: new Date(message.timestamp)
+          sent: new Date(message.timestamp*1000)
         })
       }
     })
