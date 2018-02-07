@@ -4,14 +4,14 @@ import InvitationContract from '../../build/contracts/Invitation.json'
 class Invitation {
   constructor(invitationId, fromMe, invitationContract) {
     this.id = invitationId
-    this._fromMe = fromMe
+    this.fromMe = fromMe
     this._invitationContract = invitationContract.at(invitationId)
     this._user = null
   }
 
   getUser() {
     if (this._user) return this._user
-    return this._user = this._invitationContract.then((invitation) => this._fromMe ? invitation.invitee() : invitation.inviter())
+    return this._user = this._invitationContract.then((invitation) => this.fromMe ? invitation.invitee() : invitation.inviter())
   }
 
   accept() {
