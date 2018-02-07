@@ -60,6 +60,11 @@ class App extends Component {
             console.log('New message', message)
           })
 
+          socket.on('started', () => {
+            console.log('Socket started')
+            socket.sendMessage(user, "TEST MESSAGE")
+          })
+
           socket.start()
         })
         .catch((err) => {

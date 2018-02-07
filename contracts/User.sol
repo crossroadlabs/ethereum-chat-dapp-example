@@ -32,12 +32,12 @@ contract User {
     _ ;
   }
 
-  modifier iscontact() {
+  modifier iscontactOrOwner() {
     var found = false;
     for (uint i = 0; i < _contacts.length && !found; i++) {
       found = _contacts[i] == msg.sender;
     }
-    require(found);
+    require(found || msg.sender == _owner);
     _ ;
   }
 
@@ -68,7 +68,7 @@ contract User {
     registry.ownerUpdated(oldOwner, newOwner);
   }
 
-  function getWhisperPubKey() public view iscontact returns (string) {
+  function getWhisperPubKey() public view iscontactOrOwner returns (string) {
     return _whisperInfo.pubKey;
   }
 

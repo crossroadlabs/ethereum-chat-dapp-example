@@ -3,13 +3,13 @@ import EventEmitter from 'events'
 import promisify from '../utils/promisify'
 
 class WhisperSocket extends EventEmitter {
-  constructor(user, shh) {
+  constructor(user, web3) {
     super()
 
     this._user = user
-    this._shh = shh
+    this._shh = web3.shh
+    this._web3 = web3
     this._filter = null
-    this._timer = null
 
     user.on('whisperInfoUpdated', () => {
       this._infoUpdated()
@@ -32,24 +32,19 @@ class WhisperSocket extends EventEmitter {
   }
 
   stop() {
-    if (this._timer) {
-      clearInterval(this._timer)
-      this.emit("stopped")
+    if (this._filter) {
+      this._filter.stopWatching((err) => {
+        if (err) {
+          this.emit('error', err)
+        }
+        this.emit('stopped')
+      })
+      this._filter = null
     }
-    this._timer = null
   }
 
   _infoUpdated() {
     if (this._filter) {
-      this.stop()
-      this._shh.deleteMessageFilter(this._filter, (err) => {
-        if (err) {
-          this.emit('error', err)
-        }
-        this._filter = null
-        this.start()
-      })
-    } else if (this._timer) {
       this.stop()
       this.start()
     }
@@ -57,33 +52,24 @@ class WhisperSocket extends EventEmitter {
 
   _listen(pubKey, key) {
     console.log("Listen")
-    if (this._timer) return Promise.reject(new Error("Already listening" ))
+    if (this._filter) throw new Error("Already listening" )
 
-    var filter = this._filter ? Promise.resolve(this._filter) : promisify(this._shh, 'newMessageFilter')({
-      key: key,
-      sig: pubKey
+    this._filter = this._shh.newMessageFilter({
+      privateKeyID: key
     })
 
-    return filter.then((filterId) => {
-      this._filter = filterId
-
-      this._timer = setInterval(() => {
-        this._shh.getFilterMessages(filterId, (err, messages) => {
-          if (err) {
-            console.error(err)
-            this.emit("error", err)
-          } else {
-            console.debug('New messages arrived', messages)
-            messages.forEach((message) => {
-              this.emit("message", {
-                from: message.sig,
-                message: message.payload,
-                sent: new Date(message.timestamp)
-              })
-            })
-          }
+    this._filter.watch((err, message) => {
+      if (err) {
+        console.error(err)
+        this.emit("error", err)
+      } else {
+        console.debug('New messages arrived', message)
+        this.emit("message", {
+          from: message.sig,
+          message: this._web3.toUtf8(message.payload),
+          sent: new Date(message.timestamp)
         })
-      }, 2000)
+      }
     })
   }
 
@@ -107,12 +93,12 @@ class WhisperSocket extends EventEmitter {
 
   sendMessage(to, message) {
     return to.getPubKey().then((pubKey) => {
-      return this._user.getWhisperInfo().then((info) => [info.key, pubKey])
+      return this._user.getWhisperInfo().then(([ownPubKey, ownKey]) => [ownKey, pubKey])
     }).then(([key, pubKey]) => {
       return promisify(this._shh, 'post')({
           sig: key,
           pubKey: pubKey,
-          payload: message,
+          payload: this._web3.fromUtf8(message),
           ttl: 100,
           powTarget: 0.5,
           powTime: 2
@@ -124,7 +110,7 @@ class WhisperSocket extends EventEmitter {
 WhisperSocket.bootstrap = function(web3) {
   class WhisperSocketBootstrapped extends this {
     constructor(user) {
-      super(user, web3.shh)
+      super(user, web3)
     }
   }
   return WhisperSocketBootstrapped
