@@ -33,22 +33,29 @@ class App extends Component {
         }
       })
 
-      web3.eth.getAccounts((err, accounts) => {
-        if (err) throw err
-        if (!web3.eth.defaultAccount) {
-          web3.eth.defaultAccount = accounts[0]
-        }
-
-        console.log("Accounts", accounts)
-  
-        api.Registry.instance().meOrRegister().then((user) => {
-          console.log("User", user)
-          let socket = new api.Whisper(user)
+      api.Accounts.instance().getAccounts()
+        .then((accounts) => { // Search for account with registered user. If not found - register with 0 account
+          let found = accounts.find((value) => value.user != null)
+          if (found) {
+            api.Accounts.instance().currentAccount = found.id
+            return found
+          } else {
+            let account = accounts[0].id
+            api.Accounts.instance().currentAccount = account.id
+            return api.Registry.instance().register().then((user) => {
+              account.user = user
+              return account
+            })
+          }
+        })
+        .then((account) => {
+          console.log("Account", account)
+          let socket = new api.Whisper(account.user)
           this.setState(() => {
             return {
-              user: user,
+              user: account.user,
               chatSocket: socket,
-              userId: user.id
+              userId: account.user.id
             }
           })
 
@@ -62,7 +69,7 @@ class App extends Component {
 
           socket.on('started', () => {
             console.log('Socket started')
-            socket.sendMessage(user, "TEST MESSAGE")
+            socket.sendMessage(account.user, "TEST MESSAGE")
           })
 
           socket.start()
@@ -70,7 +77,6 @@ class App extends Component {
         .catch((err) => {
           console.error("Error", err)
         })
-      })
     })
   }
 
