@@ -1,14 +1,18 @@
-export default (func) => {
+export default (func_or_obj, funcName) => {
   return (...args) => {
     return new Promise((resolve, reject) => {
-      let newArgs = args.concat([(...results) => {
-        if (results[0]) {
-          reject(results[0])
+      let newArgs = args.concat([(err, result) => {
+        if (err) {
+          reject(err)
         } else {
-          resolve(results.slice(1))
+          resolve(result)
         }
       }])
-      func(...newArgs)
+      if (funcName) {
+        func_or_obj[funcName](...newArgs)
+      } else {
+        func_or_obj(...newArgs)
+      } 
     })
   }
 }

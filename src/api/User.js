@@ -1,27 +1,27 @@
 import contract from 'truffle-contract'
 import UserContract from '../../build/contracts/User.json'
-import getWeb3 from '../utils/getWeb3'
-import Invitation from './Invitation'
+import EventEmitter from 'events'
 
-const userContract = contract(UserContract)
+class User extends EventEmitter {
+  constructor (userId, userContract, invitation) {
+    super()
 
-class User {
-  constructor (userId) {
     this._userContract = userContract.at(userId)
+    this._Invitation = invitation
     this.id = userId
     this._userContract.then((user) => {
       user.UserProfileUpdated().watch((err, response) => {
         this._profile = null
+        this.emit("profileUpdated")
       })
       user.WhisperInfoUpdated().watch((err, response) => {
         this._pubKey = null
         this._whisperInfo = null
-        if (this.whisperInfoUpdated) this.whisperInfoUpdated()
+        this.emit("whisperInfoUpdated")
       })
     })
     this._sentInvitations = null
     this._inboxInvitations = null
-    this.whisperInfoUpdated = null
     this._pubKey = null
     this._profile = null
     this._whisperInfo = null
@@ -64,29 +64,35 @@ class User {
     if (this._sentInvitations) return this._sentInvitations
     return this._sentInvitations = this._userContract
       .then((user) => user.getSentInvitations())
-      .then((invitations) => invitations.map((i) => Invitation(i, true)))
+      .then((invitations) => invitations.map((i) => new this._Invitation(i, true)))
   }
 
   getInboxInvitations() {
     if (this._inboxInvitations) return this._inboxInvitations
     return this._inboxInvitations = this._userContract
       .then((user) => user.getInboxInvitations())
-      .then((invitations) => invitations.map((i) => Invitation(i, false)))
+      .then((invitations) => invitations.map((i) => new this._Invitation(i, false)))
   }
 
   getContacts() {
     if (this._contacts) return this._contacts
     return this._contacts = this._userContract
       .then((user) => user.getContacts())
-      .then((contacts) => contacts.map((c) => new User(c)))
+      .then((contacts) => contacts.map((c) => new this.constructor(c)))
   }
 }
 
-export default (userId) => {
-  return getWeb3().then((result) => {
-    if (userContract.getProvider() !== result.web3.currentProvider) {
-      userContract.setProvider(result.web3.currentProvider)
+User.bootstrap = function(web3, Invitation) {
+  const userContract = contract(UserContract)
+  userContract.setProvider(web3.currentProvider)
+
+  class UserBootstrapped extends this {
+    constructor(userId) {
+      super(userId, userContract, Invitation)
     }
-    return new User(userId)
-  })
+  }
+
+  return UserBootstrapped
 }
+
+export default User
