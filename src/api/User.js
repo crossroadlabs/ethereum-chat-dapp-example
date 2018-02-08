@@ -3,11 +3,13 @@ import UserContract from '../../build/contracts/User.json'
 import EventEmitter from 'events'
 
 class User extends EventEmitter {
-  constructor (userId, userContract, invitation) {
+  static $inject = ['Invitation', '_UserContract()']
+
+  constructor (Invitation, UserContract, userId) {
     super()
 
-    this._userContract = userContract.at(userId)
-    this._Invitation = invitation
+    this._userContract = UserContract.at(userId)
+    this._Invitation = Invitation
     this.id = userId
     this._userContract.then((user) => {
       user.UserProfileUpdated().watch((err, response) => {
@@ -80,19 +82,12 @@ class User extends EventEmitter {
       .then((user) => user.getContacts())
       .then((contacts) => contacts.map((c) => new this.constructor(c)))
   }
-}
 
-User.bootstrap = function(web3, Invitation) {
-  const userContract = contract(UserContract)
-  userContract.setProvider(web3.currentProvider)
-
-  class UserBootstrapped extends this {
-    constructor(userId) {
-      super(userId, userContract, Invitation)
-    }
+  static injected() {
+    const userContract = contract(UserContract)
+    userContract.setProvider(this.context.injected('Web3()').currentProvider)
+    this.context.addSingletonObject('_UserContract', userContract)
   }
-
-  return UserBootstrapped
 }
 
 export default User

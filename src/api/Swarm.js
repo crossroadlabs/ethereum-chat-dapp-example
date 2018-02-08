@@ -2,8 +2,10 @@
 import promisify from '../utils/promisify'
 
 class Swarm {
-  constructor(bzz) {
-    this._bzz = bzz
+  static $inject = ['Web3()']
+
+  constructor(web3) {
+    this._bzz = web3.bzz
   }
 
   uploadFile() {
@@ -13,23 +15,6 @@ class Swarm {
   download(hash) {
     return promisify(this._bzz, 'download')(hash)
   }
-}
-
-Swarm.bootstrap = function(web3) {
-  class SwarmBootstrapped extends this {
-    constructor() {
-      super(web3.bzz)
-    }
-  }
-
-  var instance = null
-
-  SwarmBootstrapped.instance = function() {
-    if (instance) return instance
-    return instance = new this()
-  }
-
-  return SwarmBootstrapped
 }
 
  export default Swarm

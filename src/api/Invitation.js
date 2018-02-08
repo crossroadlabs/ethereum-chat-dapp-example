@@ -2,16 +2,21 @@ import contract from 'truffle-contract'
 import InvitationContract from '../../build/contracts/Invitation.json'
 
 class Invitation {
-  constructor(invitationId, fromMe, invitationContract) {
+  static $inject = ['User', '_InvitationContract()']
+
+  constructor(User, Contract, invitationId, fromMe) {
     this.id = invitationId
     this.fromMe = fromMe
-    this._invitationContract = invitationContract.at(invitationId)
+    this._invitationContract = Contract.at(invitationId)
+    this._User = User
     this._user = null
   }
 
   getUser() {
     if (this._user) return this._user
-    return this._user = this._invitationContract.then((invitation) => this.fromMe ? invitation.invitee() : invitation.inviter())
+    return this._user = this._invitationContract
+      .then((invitation) => this.fromMe ? invitation.invitee() : invitation.inviter())
+      .then((userId) => new this._User(userId))
   }
 
   accept() {
@@ -21,19 +26,12 @@ class Invitation {
   reject() {
     return this._invitationContract.then((invitation) => invitation.reject())
   }
-}
 
-Invitation.bootstrap = function(web3) {
-  const invitationContract = contract(InvitationContract)
-  invitationContract.setProvider(web3.currentProvider)
-
-  class InvitationBootstrapped extends this {
-    constructor(invitationId, fromMe) {
-      super(invitationId, fromMe, invitationContract)
-    }
+  static injected(context) {
+    const invitationContract = contract(InvitationContract)
+    invitationContract.setProvider(this.context.injected('Web3()').currentProvider)
+    this.context.addSingletonObject('_InvitationContract', invitationContract)
   }
-
-  return InvitationBootstrapped
 }
 
 export default Invitation

@@ -4,17 +4,18 @@ import Invitation from './Invitation'
 import Swarm from './Swarm'
 import Whisper from './WhisperSocket'
 import Accounts from './Accounts'
+import Context from '../utils/di'
 
 export default (web3) => {
-  let InvitationBootstrapped = Invitation.bootstrap(web3)
-  let UserBootstrapped = User.bootstrap(web3, InvitationBootstrapped)
-  let UserRegistryBootstrapped = UserRegistry.bootstrap(web3, UserBootstrapped)
-  return {
-    Registry: UserRegistryBootstrapped,
-    User: UserBootstrapped,
-    Invitation: InvitationBootstrapped,
-    Swarm: Swarm.bootstrap(web3),
-    Whisper: Whisper.bootstrap(web3),
-    Accounts: Accounts.bootstrap(web3, UserRegistryBootstrapped.instance())
-  }
+  let context = new Context()
+  context.addSingletonObject('Web3', web3)
+
+  context.addClass('Invitation', Invitation)
+  context.addClass('User', User)
+  context.addClass('Accounts', Accounts, true)
+  context.addClass('UserRegistry', UserRegistry, true)
+  context.addClass('Swarm', Swarm, true)
+  context.addClass('Whisper', Whisper)
+
+  return context.storage
 }

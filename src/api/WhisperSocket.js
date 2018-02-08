@@ -3,7 +3,9 @@ import EventEmitter from 'events'
 import promisify from '../utils/promisify'
 
 class WhisperSocket extends EventEmitter {
-  constructor(user, web3) {
+  static $inject = ['Web3()']
+
+  constructor(web3, user) {
     super()
 
     this._user = user
@@ -105,15 +107,6 @@ class WhisperSocket extends EventEmitter {
         })
       })
   }
-}
-
-WhisperSocket.bootstrap = function(web3) {
-  class WhisperSocketBootstrapped extends this {
-    constructor(user) {
-      super(user, web3)
-    }
-  }
-  return WhisperSocketBootstrapped
 }
 
 export default WhisperSocket

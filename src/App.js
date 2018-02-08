@@ -29,7 +29,7 @@ class App extends Component {
       this.setState(() => {
         return {
           web3: web3,
-          userRegistry: api.Registry.instance()
+          userRegistry: api.UserRegistry.instance()
         }
       })
 
@@ -41,7 +41,7 @@ class App extends Component {
             return found
           } else {
             let account = accounts[0]
-            return api.Registry.instance().register().then((user) => {
+            return api.UserRegistry.instance().register().then((user) => {
               account.user = user
               return account
             })

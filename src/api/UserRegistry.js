@@ -4,8 +4,11 @@ import UserRegistryContract from '../../build/contracts/UserRegistry.json'
 const NULL_ID = '0x0000000000000000000000000000000000000000'
 
 class UserRegistry {
-  constructor(userRegistryContract, User) {
-    this._userRegistryContract = userRegistryContract
+
+  static $inject = ['User', '_UserRegistryContract()']
+
+  constructor(User, userRegistryContract) {
+    this._userRegistryContract = userRegistryContract.deployed()
     this._User = User
   }
 
@@ -36,26 +39,12 @@ class UserRegistry {
         return new this._User(userId)
       })
   }
-}
 
-UserRegistry.bootstrap = function(web3, User) {
-  const userRegistryContract = contract(UserRegistryContract)
-  userRegistryContract.setProvider(web3.currentProvider)
-
-  class UserRegistryBootstrapped extends this {
-    constructor() {
-      super(userRegistryContract.deployed(), User)
-    }
+  static injected(context) {
+    const userRegistryContract = contract(UserRegistryContract)
+    userRegistryContract.setProvider(this.context.injected('Web3()').currentProvider)
+    this.context.addSingletonObject('_UserRegistryContract', userRegistryContract)
   }
-
-  var instance = null
-
-  UserRegistryBootstrapped.instance = function() {
-    if (instance) return instance
-    return instance = new this()
-  }
-
-  return UserRegistryBootstrapped
 }
 
 export default UserRegistry
