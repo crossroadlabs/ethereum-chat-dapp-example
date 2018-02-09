@@ -31,7 +31,7 @@ class Accounts {
   }
 
   set currentAccount(walledAccountId) {
-    this._web3.eth.defaultAccount = walledAccountId;
+    this._web3.eth.defaultAccount = walledAccountId
   }
 }
 

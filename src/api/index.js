@@ -8,6 +8,7 @@ import Context from '../utils/di'
 
 export default (web3) => {
   let context = new Context()
+  context.addConstant('GAS',  3141592)
   context.addSingletonObject('Web3', web3)
 
   context.addClass('Invitation', Invitation)

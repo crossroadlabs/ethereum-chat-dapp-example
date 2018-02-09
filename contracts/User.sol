@@ -16,6 +16,11 @@ contract User {
 
   event UserProfileUpdated();
   event WhisperInfoUpdated();
+  event InvitationSent(Invitation invitation, User to);
+  event InvitationReceived(Invitation invitation, User from);
+  event ContactAdded(User contact);
+  event ContactRemoved(User contact);
+  event OwnerChanged(address from, address to);
 
   Profile private _profile;
   address private _owner;
@@ -32,7 +37,7 @@ contract User {
     _ ;
   }
 
-  modifier iscontactOrOwner() {
+  modifier isContactOrOwner() {
     var found = false;
     for (uint i = 0; i < _contacts.length && !found; i++) {
       found = _contacts[i] == msg.sender;
@@ -66,9 +71,10 @@ contract User {
     var oldOwner = _owner;
     _owner = newOwner;
     registry.ownerUpdated(oldOwner, newOwner);
+    OwnerChanged(oldOwner, newOwner);
   }
 
-  function getWhisperPubKey() public view iscontactOrOwner returns (string) {
+  function getWhisperPubKey() public view isContactOrOwner returns (string) {
     return _whisperInfo.pubKey;
   }
 
@@ -102,6 +108,7 @@ contract User {
     }
 
     _contacts.push(contact);
+    ContactAdded(contact);
   }
 
   function removeContactPrivate(User contact) private {
@@ -122,6 +129,7 @@ contract User {
   function removeContact(User contact) external onlyowner {
     removeContactPrivate(contact);
     contact.removeMe();
+    ContactRemoved(contact);
   }
 
   function removeMe() public {
@@ -129,9 +137,10 @@ contract User {
     User contact = User(msg.sender);
 
     removeContactPrivate(contact);
+    ContactRemoved(contact);
   }
 
-  function sendInvitation(User invitee) external onlyowner returns(Invitation) {
+  function sendInvitation(User invitee) external onlyowner {
     require(address(invitee) != 0x0);
     require(this != invitee);
 
@@ -145,7 +154,7 @@ contract User {
 
     invitee.receiveInvitation(invitation);
 
-    return invitation;
+    InvitationSent(invitation, invitee);
   }
 
   function receiveInvitation(Invitation invitation) public {
@@ -159,6 +168,7 @@ contract User {
     }
 
     _inbox.push(invitation);
+    InvitationReceived(invitation, invitation.inviter());
   }
 
   //TODO: withdrawInvitation

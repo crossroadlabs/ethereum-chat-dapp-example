@@ -5,15 +5,19 @@ import "./User.sol";
 contract UserRegistry {
   mapping(address => User) private users;
 
+  event UserRegistered(User user);
+  event UserOwnerUpdated(User user, address newOwner);
+
   function me() view external returns (User) {
     return users[msg.sender];
   }
 
-  function register() external returns (User) {
+  function register() external {
+    require(msg.sender != 0x0);
     require(address(users[msg.sender]) == 0x0);
     var user = new User(msg.sender);
     users[msg.sender] = user;
-    return user;
+    UserRegistered(user);
   }
 
   function getUser(address walletId) public view returns (User) {
@@ -28,5 +32,6 @@ contract UserRegistry {
     require(user == msg.sender);
     users[oldWalletId] = User(0x0);
     users[newWalletId] = user;
+    UserOwnerUpdated(user, newWalletId);
   }
 }

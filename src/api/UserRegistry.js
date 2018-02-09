@@ -24,9 +24,9 @@ class UserRegistry {
 
   register() {
     return this._userRegistryContract
-      .then((registry) => registry.register().then(() => registry.me()))
+      .then((registry) => registry.register()).then((result) => (!result.logs[0]) ? null : result.logs[0].args.user)
       .then((userId) => {
-        if (userId === NULL_ID) throw new Error("Registration failed")
+        if (!userId || userId === NULL_ID) throw new Error("Registration failed")
         return new this._User(userId)
       })
   }
@@ -43,6 +43,11 @@ class UserRegistry {
   static injected(context) {
     const userRegistryContract = contract(UserRegistryContract)
     userRegistryContract.setProvider(this.context.injected('Web3()').currentProvider)
+    let defaults = userRegistryContract.defaults()
+    if (!defaults.gas) {
+      defaults.gas = this.context.injected('GAS')
+      userRegistryContract.defaults(defaults)
+    }
     this.context.addSingletonObject('_UserRegistryContract', userRegistryContract)
   }
 }
