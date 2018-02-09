@@ -12,6 +12,10 @@ class Swarm {
     return promisify(this._bzz, 'upload')({ pick: 'file' })
   }
 
+  upload(data) {
+    return promisify(this._bzz, 'upload')(data)
+  }
+
   download(hash) {
     return promisify(this._bzz, 'download')(hash)
   }
