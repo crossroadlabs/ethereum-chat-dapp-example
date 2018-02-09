@@ -52,8 +52,16 @@ class WhisperSocket extends EventEmitter {
     }
   }
 
+  _encodeKey(key) {
+    return Promise.resolve((key && key !== '') ? '0x' + key : key)
+  }
+
+  _decodeKey(key) {
+    return Promise.resolve(key.slice(2))
+  }
+
   _listen(pubKey, key) {
-    console.log("Listen")
+    console.log("Listen", pubKey, key)
     if (this._filter) throw new Error("Already listening" )
 
     this._filter = this._shh.newMessageFilter({
@@ -77,6 +85,7 @@ class WhisperSocket extends EventEmitter {
 
   _updateIdentity() {
     return this._user.getWhisperInfo()
+      .then(([pubKey, key]) => this._decodeKey(key).then((decoded) => [pubKey, decoded]))
       .then(([pubKey, key]) => {
         return key !== '' ? promisify(this._shh, 'hasKeyPair')(key).then((has) => [key, pubKey, has]) : [key, pubKey, false]
       })
@@ -86,7 +95,7 @@ class WhisperSocket extends EventEmitter {
       .then(([id, pubKey, created]) => {
         if (created) {
           return promisify(this._shh, 'getPublicKey')(id).then((pubKey) => {
-            return this._user.setWhisperInfo(pubKey, id).then(() => [pubKey, id])
+            return this._encodeKey(id).then((encoded) => this._user.setWhisperInfo(pubKey, encoded).then(() => [pubKey, id]))
           })
         }
         return [pubKey, id]
@@ -95,7 +104,8 @@ class WhisperSocket extends EventEmitter {
 
   sendMessage(to, message) {
     return to.getPubKey().then((pubKey) => {
-      return this._user.getWhisperInfo().then(([ownPubKey, ownKey]) => [ownKey, pubKey])
+      return this._user.getWhisperInfo()
+        .then(([ownPubKey, ownKey]) => this._decodeKey(ownKey).then((decoded) => [decoded, pubKey]))
     }).then(([key, pubKey]) => {
       return promisify(this._shh, 'post')({
           sig: key,

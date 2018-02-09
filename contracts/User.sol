@@ -6,12 +6,12 @@ import "./Invitation.sol";
 contract User {
   struct Profile {
     string name;
-    string avatar;
+    bytes32 avatar; //Swarm hash
   }
 
   struct WhisperInfo {
-    string pubKey;
-    string key;
+    bytes pubKey;
+    bytes key;
   }
 
   event UserProfileUpdated();
@@ -52,11 +52,11 @@ contract User {
     registry = UserRegistry(msg.sender);
   }
 
-  function getProfileInfo() public view returns (string name, string avatar) {
+  function getProfileInfo() public view returns (string name, bytes32 avatar) {
     return (_profile.name, _profile.avatar);
   }
 
-  function setProfileInfo(string name, string avatar) public onlyowner {
+  function setProfileInfo(string name, bytes32 avatar) public onlyowner {
     _profile.name = name;
     _profile.avatar = avatar;
     UserProfileUpdated();
@@ -74,15 +74,15 @@ contract User {
     OwnerChanged(oldOwner, newOwner);
   }
 
-  function getWhisperPubKey() public view isContactOrOwner returns (string) {
+  function getWhisperPubKey() public view isContactOrOwner returns (bytes) {
     return _whisperInfo.pubKey;
   }
 
-  function getWhisperInfo() public view onlyowner returns (string pubKey, string key) {
+  function getWhisperInfo() public view onlyowner returns (bytes pubKey, bytes key) {
     return (_whisperInfo.pubKey, _whisperInfo.key);
   }
 
-  function setWhisperInfo(string pubKey, string key) public onlyowner {
+  function setWhisperInfo(bytes pubKey, bytes key) public onlyowner {
     _whisperInfo.key = key;
     _whisperInfo.pubKey = pubKey;
     WhisperInfoUpdated();

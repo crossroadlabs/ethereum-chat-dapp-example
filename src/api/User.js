@@ -64,10 +64,11 @@ class User extends EventEmitter {
   getProfile() {
     if (this._profile) return this._profile
     return this._profile = this._userContract.then((user) => user.getProfileInfo())
+      .then(([name, avatar]) => [name, avatar.slice(2)])
   }
 
   setProfile(name, avatar) {
-    return this._userContract.then((user) => user.setProfileInfo(name, avatar))
+    return this._userContract.then((user) => user.setProfileInfo(name, (avatar && avatar !== '') ? '0x'+avatar : avatar))
   }
 
   invite(user) {
