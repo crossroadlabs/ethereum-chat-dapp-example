@@ -19,6 +19,7 @@ let getWeb3 = new Promise(function(resolve, reject) {
       var provider = new Web3.providers.HttpProvider('http://127.0.0.1:9545')
 
       web3 = new Web3(provider)
+      web3.bzz = null // We can't work with fallback bzz in this version
 
       console.log('No web3 instance injected, using Local web3.');
 

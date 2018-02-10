@@ -6,9 +6,11 @@ import Whisper from './WhisperSocket'
 import Accounts from './Accounts'
 import Context from '../utils/di'
 
-export default (web3) => {
+export default (web3, swarm_api_url = 'http://swarm-gateways.net') => {
   let context = new Context()
   context.addConstant('GAS',  3141592)
+  context.addConstant('SWARM_API_URL', swarm_api_url)
+  
   context.addSingletonObject('Web3', web3)
 
   context.addClass('Invitation', Invitation)
