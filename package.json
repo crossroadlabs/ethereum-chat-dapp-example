@@ -63,7 +63,7 @@
     "test": "node scripts/test.js --env=jsdom",
     "truffle": "truffle",
     "swarm": "~/Library/Application\\ Support/Mist/swarmjs/bin/swarm -datadir ~/Library/Ethereum/rinkeby --ens-api ~/Library/Ethereum/rinkeby/geth.ipc --corsdomain '*' --bzzaccount $ACCOUNT",
-    "geth": "~/Library/Application\\ Support/Mist/binaries/Geth/unpacked/geth --rpc --shh --rpcport 9545 --rpccorsdomain '*' --rinkeby --rpcapi eth,web3,shh,net,swarm --unlock $ACCOUNT"
+    "geth": "~/Library/Application\\ Support/Mist/binaries/Geth/unpacked/geth --rpc --shh --rpcport 9545 --rpccorsdomain '*' --rinkeby --rpcapi eth,web3,shh,net --unlock $ACCOUNT"
   },
   "jest": {
     "collectCoverageFrom": [
