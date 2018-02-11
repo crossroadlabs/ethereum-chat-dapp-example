@@ -35,7 +35,7 @@ class UserRegistry {
     return this._userRegistryContract
       .then((registry) => registry.getUser(walletId))
       .then((userId) => {
-        if (userId === NULL_ID) throw new Error('User not found')
+        if (userId === NULL_ID || userId === '0x') throw new Error('User not found')
         return new this._User(userId)
       })
   }
