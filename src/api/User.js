@@ -73,7 +73,7 @@ class User extends EventEmitter {
 
   invite(user) {
     return this._userContract
-      .then((user) => user.sendInvitation(user.id).then((result) => !result.logs[0] ? null: result.logs[0].args.invitation))
+      .then((contract) => contract.sendInvitation(user.id).then((result) => !result.logs[0] ? null: result.logs[0].args.invitation))
       .then((invitationId) => {
         if (!invitationId || invitationId === NULL_ID) throw new Error("Invitation failed")
         this._sentInvitations = null
