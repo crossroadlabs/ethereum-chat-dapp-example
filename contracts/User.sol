@@ -6,16 +6,21 @@ import "./Invitation.sol";
 contract User {
   struct Profile {
     string name;
-    string avatar;
+    bytes32 avatar; //Swarm hash
   }
 
   struct WhisperInfo {
-    string pubKey;
-    string key;
+    bytes pubKey;
+    bytes key;
   }
 
   event UserProfileUpdated();
   event WhisperInfoUpdated();
+  event InvitationSent(Invitation invitation, User to);
+  event InvitationReceived(Invitation invitation, User from);
+  event ContactAdded(User contact);
+  event ContactRemoved(User contact);
+  event OwnerChanged(address from, address to);
 
   Profile private _profile;
   address private _owner;
@@ -32,12 +37,12 @@ contract User {
     _ ;
   }
 
-  modifier iscontact() {
+  modifier isContactOrOwner() {
     var found = false;
     for (uint i = 0; i < _contacts.length && !found; i++) {
       found = _contacts[i] == msg.sender;
     }
-    require(found);
+    require(found || msg.sender == _owner);
     _ ;
   }
 
@@ -47,11 +52,11 @@ contract User {
     registry = UserRegistry(msg.sender);
   }
 
-  function getProfileInfo() public view returns (string name, string avatar) {
+  function getProfileInfo() public view returns (string name, bytes32 avatar) {
     return (_profile.name, _profile.avatar);
   }
 
-  function setProfileInfo(string name, string avatar) public onlyowner {
+  function setProfileInfo(string name, bytes32 avatar) public onlyowner {
     _profile.name = name;
     _profile.avatar = avatar;
     UserProfileUpdated();
@@ -66,17 +71,18 @@ contract User {
     var oldOwner = _owner;
     _owner = newOwner;
     registry.ownerUpdated(oldOwner, newOwner);
+    OwnerChanged(oldOwner, newOwner);
   }
 
-  function getWhisperPubKey() public view iscontact returns (string) {
+  function getWhisperPubKey() public view isContactOrOwner returns (bytes) {
     return _whisperInfo.pubKey;
   }
 
-  function getWhisperInfo() public view onlyowner returns (string pubKey, string key) {
+  function getWhisperInfo() public view onlyowner returns (bytes pubKey, bytes key) {
     return (_whisperInfo.pubKey, _whisperInfo.key);
   }
 
-  function setWhisperInfo(string pubKey, string key) public onlyowner {
+  function setWhisperInfo(bytes pubKey, bytes key) public onlyowner {
     _whisperInfo.key = key;
     _whisperInfo.pubKey = pubKey;
     WhisperInfoUpdated();
@@ -102,6 +108,7 @@ contract User {
     }
 
     _contacts.push(contact);
+    ContactAdded(contact);
   }
 
   function removeContactPrivate(User contact) private {
@@ -122,6 +129,7 @@ contract User {
   function removeContact(User contact) external onlyowner {
     removeContactPrivate(contact);
     contact.removeMe();
+    ContactRemoved(contact);
   }
 
   function removeMe() public {
@@ -129,9 +137,10 @@ contract User {
     User contact = User(msg.sender);
 
     removeContactPrivate(contact);
+    ContactRemoved(contact);
   }
 
-  function sendInvitation(User invitee) external onlyowner returns(Invitation) {
+  function sendInvitation(User invitee) external onlyowner {
     require(address(invitee) != 0x0);
     require(this != invitee);
 
@@ -145,7 +154,7 @@ contract User {
 
     invitee.receiveInvitation(invitation);
 
-    return invitation;
+    InvitationSent(invitation, invitee);
   }
 
   function receiveInvitation(Invitation invitation) public {
@@ -159,6 +168,7 @@ contract User {
     }
 
     _inbox.push(invitation);
+    InvitationReceived(invitation, invitation.inviter());
   }
 
   //TODO: withdrawInvitation

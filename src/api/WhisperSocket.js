@@ -1,95 +1,122 @@
 
-import getWeb3 from '../utils/getWeb3'
+import EventEmitter from 'events'
 import promisify from '../utils/promisify'
 
-class WhisperSocket {
-  constructor(user) {
-    this.user = user;
-    this.onmessage = null;
-    this.onerror = null;
-    this._listening = null;
+class WhisperSocket extends EventEmitter {
+  static $inject = ['Web3()']
 
-    this.user.whisperInfoUpdated = () => {
-      this.initialize().catch((err) => {
-        console.error(err)
-        if (this.onerror) this.onerror(err)
-      })
-    }
-  }
+  constructor(web3, user) {
+    super()
 
-  initialize() {
-    return this._updateIdentity()
-    .then(([pubKey, key]) => {
-      return this._listen(pubKey, key).then(() => this)
+    this._user = user
+    this._shh = web3.shh
+    this._web3 = web3
+    this._filter = null
+
+    user.on('whisperInfoUpdated', () => {
+      this._infoUpdated()
     })
   }
 
-  _listen(pubKey, key) {
-    return this._getShh().then((shh) => {
-      if (this._listening) this._listening.stopWatching()
-      this._listening = shh.filter({ to: key })
-      this._listening.watch((err, message) => {
-        if (err) {
-          console.error(err)
-          if (this.onerror) this.onerror(err)
-        } else {
-          console.debug('Message arrived', message)
-          if (this.onmessage) {
-            this.onmessage({
-              from: message.from,
-              message: message.payload,
-              sent: message.sent
-            })
-          }
-        }
+  start() {
+    if (this._timer) {
+      this.emit("error", new Error("Already started"))
+      return
+    }
+    this._updateIdentity()
+      .then(([pubKey, key]) => this._listen(pubKey, key))
+      .then(() => {
+        this.emit("started")
       })
+      .catch((err) => {
+        this.emit("error", err)
+      })
+  }
+
+  stop() {
+    if (this._filter) {
+      this._filter.stopWatching((err) => {
+        if (err) {
+          this.emit('error', err)
+        }
+        this.emit('stopped')
+      })
+      this._filter = null
+    }
+  }
+
+  _infoUpdated() {
+    if (this._filter) {
+      this.stop()
+      this.start()
+    }
+  }
+
+  _encodeKey(key) {
+    return Promise.resolve((key && key !== '') ? '0x' + key : key)
+  }
+
+  _decodeKey(key) {
+    return Promise.resolve(key.slice(2))
+  }
+
+  _listen(pubKey, key) {
+    console.log("Listen", pubKey, key)
+    if (this._filter) throw new Error("Already listening" )
+
+    this._filter = this._shh.newMessageFilter({
+      privateKeyID: key
+    })
+
+    this._filter.watch((err, message) => {
+      if (err) {
+        console.error(err)
+        this.emit("error", err)
+      } else {
+        console.debug('New messages arrived', message)
+        this.emit("message", {
+          from: message.sig,
+          message: this._web3.toUtf8(message.payload),
+          sent: new Date(message.timestamp*1000)
+        })
+      }
     })
   }
 
   _updateIdentity() {
-    this.user.getWhisperInfo()
-    .then((info) => this._getShh().then((shh) => [info, shh]))
-    .then(([info, shh]) => {
-      return info.key ? promisify(shh.hasIdentity)(info.key).then((has) => [info.key, has, shh]) : [info.key, false, shh]
-    })
-    .then(([key, has, shh]) => {
-      return has ? [key, false, shh] : promisify(shh.newIdentity)().then((id) => [id, true, shh])
-    })
-    .then(([id, created, shh]) => {
-      // This part for new web3 1.0 API
-      // shh.getPublicKey(id).then((pubKey) => {
-      //   if (created) {
-      //     return this.user.setWhisperInfo(pubKey, id).then(() => [pubKey, id])
-      //   }
-      //   return [pubKey, id]
-      // })
-      if (created) {
-        return this.user.setWhisperInfo(id, id).then(() => [id, id])
-      }
-      return [id, id]
-    })
-  }
-
-  _getShh() {
-    return getWeb3().then((result) => result.web3.shh);
+    return this._user.getWhisperInfo()
+      .then(([pubKey, key]) => this._decodeKey(key).then((decoded) => [pubKey, decoded]))
+      .then(([pubKey, key]) => {
+        return key !== '' ? promisify(this._shh, 'hasKeyPair')(key).then((has) => [key, pubKey, has]) : [key, pubKey, false]
+      })
+      .then(([key, pubKey, has]) => {
+        return has ? [key, pubKey, false] : promisify(this._shh, 'newKeyPair')().then((id) => [id, pubKey, true])
+      })
+      .then(([id, pubKey, created]) => {
+        if (created) {
+          return promisify(this._shh, 'getPublicKey')(id).then((pubKey) => {
+            return this._encodeKey(id).then((encoded) => this._user.setWhisperInfo(pubKey, encoded).then(() => [pubKey, id]))
+          })
+        }
+        return [pubKey, id]
+      })
   }
 
   sendMessage(to, message) {
     return to.getPubKey().then((pubKey) => {
-      return this.user.getWhisperInfo().then((info) => [info.key, pubKey])
+      return this._user.getWhisperInfo()
+        .then(([ownPubKey, ownKey]) => this._decodeKey(ownKey).then((decoded) => [decoded, pubKey]))
     }).then(([key, pubKey]) => {
-      return this._getShh().then((shh) => {
-        return promisify(shh.post)({
-          from: key,
-          payload: message,
+      return promisify(this._shh, 'post')({
+          sig: key,
+          pubKey: pubKey,
+          payload: this._web3.fromUtf8(message),
           ttl: 100,
-          workToProve: 10
+          powTarget: 0.5,
+          powTime: 2
         })
       })
-    })
   }
 }
 
-export default (user) => { 
-  return (new WhisperSocket(user)).initialize()
-}
+export default WhisperSocket

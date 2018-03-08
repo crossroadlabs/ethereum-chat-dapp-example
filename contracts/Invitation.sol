@@ -6,6 +6,9 @@ contract Invitation {
     User public inviter;
     User public invitee;
 
+    event InvitationAccepted();
+    event InvitationRejected();
+
     modifier inviteeOnly() {
         require(msg.sender == address(invitee));
         _ ;
@@ -19,9 +22,11 @@ contract Invitation {
 
     function accept() public inviteeOnly {
         inviter.invitationAccepted();
+        InvitationAccepted();
     }
 
     function reject() public inviteeOnly {
         inviter.invitationRejected();
+        InvitationRejected();
     }
 }

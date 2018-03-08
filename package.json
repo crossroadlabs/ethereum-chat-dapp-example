@@ -41,9 +41,12 @@
     "recursive-readdir": "2.1.0",
     "strip-ansi": "3.0.1",
     "style-loader": "0.13.1",
-    "truffle-contract": "^1.1.8",
+    "swarm-js": "^0.1.37",
+    "truffle": "^4.0.6",
+    "truffle-contract": "^3.0.3",
     "truffle-solidity-loader": "0.0.8",
     "url-loader": "0.5.7",
+    "web3": "^0.20.4",
     "webpack": "1.14.0",
     "webpack-dev-server": "1.16.2",
     "webpack-manifest-plugin": "1.1.0",
@@ -58,7 +61,9 @@
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js --env=jsdom",
-    "truffle": "truffle"
+    "truffle": "truffle",
+    "swarm": "~/Library/Application\\ Support/Mist/swarmjs/bin/swarm -datadir ~/Library/Ethereum/rinkeby --ens-api ~/Library/Ethereum/rinkeby/geth.ipc --corsdomain '*' --bzzaccount $ACCOUNT",
+    "geth": "~/Library/Application\\ Support/Mist/binaries/Geth/unpacked/geth --rpc --shh --rpcport 9545 --rpccorsdomain '*' --rinkeby --rpcapi eth,web3,shh,net --unlock $ACCOUNT"
   },
   "jest": {
     "collectCoverageFrom": [

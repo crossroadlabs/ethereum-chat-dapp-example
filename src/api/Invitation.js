@@ -1,36 +1,48 @@
 import contract from 'truffle-contract'
 import InvitationContract from '../../build/contracts/Invitation.json'
-import getWeb3 from '../utils/getWeb3'
+import EventEmitter from 'events'
 
-const invitationContract = contract(InvitationContract)
+class Invitation extends EventEmitter {
+  static $inject = ['User', '_InvitationContract()']
 
-class Invitation {
-  constructor(invitationId, fromMe) {
+  constructor(User, Contract, invitationId, fromMe) {
+    super()
     this.id = invitationId
-    this._fromMe = fromMe
-    this._invitationContract = invitationContract.at(invitationId)
+    this.fromMe = fromMe
+    this._invitationContract = Contract.at(invitationId)
+    this._User = User
     this._user = null
+    this.__setupEvents()
+  }
+
+  __setupEvents() {
+    this._invitationContract.then((inv) => {
+      inv.InvitationAccepted().watch((err, response) => {
+        this.emit('accepted')
+      })
+      inv.InvitationRejected().watch((err, response) => {
+        this.emit('rejected')
+      })
+    })
   }
 
   getUser() {
     if (this._user) return this._user
-    return this._user = this._invitationContract.then((invitation) => this._fromMe ? invitation.invitee() : invitation.inviter())
+    return this._user = this._invitationContract
+      .then((invitation) => this.fromMe ? invitation.invitee() : invitation.inviter())
+      .then((userId) => new this._User(userId))
   }
 
-  accept() {
-    return this._invitationContract.then((invitation) => invitation.accept())
-  }
-
-  reject() {
-    return this._invitationContract.then((invitation) => invitation.reject())
-  }
-}
-
-export default (invitationId, fromMe) => {
-  return getWeb3().then((result) => {
-    if (invitationContract.getProvider() !== result.web3.currentProvider) {
-      invitationContract.setProvider(result.web3.currentProvider);
+  static injected(context) {
+    const invitationContract = contract(InvitationContract)
+    invitationContract.setProvider(this.context.injected('Web3()').currentProvider)
+    let defaults = invitationContract.defaults()
+    if (!defaults.gas) {
+      defaults.gas = this.context.injected('GAS')
+      invitationContract.defaults(defaults)
     }
-    return new Invitation(invitationId, fromMe)
-  })
+    this.context.addSingletonObject('_InvitationContract', invitationContract)
+  }
 }
+
+export default Invitation
